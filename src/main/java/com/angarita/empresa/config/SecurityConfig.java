@@ -1,4 +1,4 @@
-package com.angarita.empresa.config; // Asegúrate de verificar el paquete correcto
+package com.angarita.empresa.config; 
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
