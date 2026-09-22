@@ -1,0 +1,301 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  background: #f1f5f9;
+  color: #1e293b;
+}
+
+button,
+input {
+  font-family: inherit;
+}
+
+/* LOGIN Y REGISTRO */
+
+.app {
+  min-height: 100vh;
+}
+
+.auth-container {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 420px;
+  background: white;
+  padding: 40px;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+  text-align: center;
+}
+
+.logo {
+  font-size: 50px;
+  margin-bottom: 15px;
+}
+
+.auth-card h1 {
+  font-size: 30px;
+  margin-bottom: 10px;
+}
+
+.subtitle {
+  color: #64748b;
+  margin-bottom: 25px;
+}
+
+.auth-card form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.auth-card input {
+  width: 100%;
+  padding: 13px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 16px;
+  outline: none;
+}
+
+.auth-card input:focus {
+  border-color: #2563eb;
+}
+
+.btn-primary {
+  border: none;
+  background: #2563eb;
+  color: white;
+  padding: 13px;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.btn-primary:hover {
+  background: #1d4ed8;
+}
+
+.btn-secondary {
+  border: 1px solid #2563eb;
+  background: white;
+  color: #2563eb;
+  padding: 11px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.btn-secondary:hover {
+  background: #eff6ff;
+}
+
+.switch-text {
+  margin-top: 25px;
+  margin-bottom: 10px;
+  color: #64748b;
+}
+
+.mensaje {
+  margin-top: 15px;
+  color: #2563eb;
+  font-weight: bold;
+}
+
+/* HEADER */
+
+.header {
+  background: #1e293b;
+  color: white;
+  padding: 20px 6%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header h1 {
+  margin-bottom: 5px;
+}
+
+.header span {
+  color: #cbd5e1;
+}
+
+.btn-logout {
+  border: none;
+  background: #ef4444;
+  color: white;
+  padding: 10px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.btn-logout:hover {
+  background: #dc2626;
+}
+
+/* CONTENIDO */
+
+.main {
+  max-width: 1200px;
+  margin: auto;
+  padding: 40px 20px;
+}
+
+.title-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+}
+
+.title-section h2 {
+  font-size: 30px;
+}
+
+.btn-history {
+  border: none;
+  background: #475569;
+  color: white;
+  padding: 11px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.btn-history:hover {
+  background: #334155;
+}
+
+/* PRODUCTOS */
+
+.products-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 25px;
+}
+
+.product-card {
+  background: white;
+  padding: 25px;
+  border-radius: 14px;
+  box-shadow: 0 5px 18px rgba(0, 0, 0, 0.08);
+  text-align: center;
+  transition: transform 0.2s;
+}
+
+.product-card:hover {
+  transform: translateY(-4px);
+}
+
+.product-icon {
+  font-size: 55px;
+  margin-bottom: 15px;
+}
+
+.product-card h3 {
+  font-size: 21px;
+  margin-bottom: 12px;
+}
+
+.price {
+  font-size: 24px;
+  font-weight: bold;
+  color: #2563eb;
+  margin-bottom: 10px;
+}
+
+.stock {
+  color: #64748b;
+  margin-bottom: 20px;
+}
+
+.btn-buy {
+  width: 100%;
+  border: none;
+  background: #16a34a;
+  color: white;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.btn-buy:hover {
+  background: #15803d;
+}
+
+.btn-buy:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
+}
+
+/* HISTORIAL */
+
+.history {
+  margin-top: 50px;
+}
+
+.history h2 {
+  margin-bottom: 20px;
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.history-item {
+  background: white;
+  padding: 18px 22px;
+  border-radius: 10px;
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.06);
+}
+
+.history-item strong {
+  color: #2563eb;
+}
+
+.history-item p {
+  margin-top: 5px;
+  color: #64748b;
+}
+
+/* CELULAR */
+
+@media (max-width: 600px) {
+  .auth-card {
+    padding: 30px 20px;
+  }
+
+  .header {
+    flex-direction: column;
+    gap: 15px;
+    text-align: center;
+  }
+
+  .title-section {
+    flex-direction: column;
+    gap: 15px;
+    align-items: flex-start;
+  }
+
+  .history-item {
+    flex-direction: column;
+  }
+}
