@@ -1,61 +1,67 @@
 package com.angarita.empresa.model;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 
+import java.util.Collection;
+import java.util.List;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @Entity
 @Table(name = "usuarios")
-public class Usuario {
+public class Usuario implements UserDetails {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true)
+    private String nombre;
+
+    @Column(unique = true)
     private String username;
 
-    @Column(nullable = false)
+    @Column(unique = true)
+    private String email;
+
     private String password;
 
     private String rol;
 
-    public Usuario() {}
-
-    public Usuario(String username, String password, String rol) {
-        this.username = username;
-        this.password = password;
-        this.rol = rol;
+    // Métodos de UserDetails requeridos por Spring Security
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        if (rol != null && !rol.isBlank()) {
+            return List.of(new SimpleGrantedAuthority(rol.startsWith("ROLE_") ? rol : "ROLE_" + rol));
+        }
+        return List.of(new SimpleGrantedAuthority("ROLE_USER"));
     }
 
-    // Getters y Setters
-    public Long getId() {
-        return id;
+    @Override
+    public boolean isAccountNonExpired() {
+        return true;
     }
 
-    public void setId(Long id) {
-        this.id = id;
+    @Override
+    public boolean isAccountNonLocked() {
+        return true;
     }
 
-    public String getUsername() {
-        return username;
+    @Override
+    public boolean isCredentialsNonExpired() {
+        return true;
     }
 
-    public void setUsername(String username) {
-        this.username = username;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
-
-    public String getRol() {
-        return rol;
-    }
-
-    public void setRol(String rol) {
-        this.rol = rol;
+    @Override
+    public boolean isEnabled() {
+        return true;
     }
 }

@@ -1,4 +1,4 @@
-package com.angarita.empresa.config; 
+package com.angarita.empresa.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -22,8 +22,7 @@ public class SecurityConfig {
         http
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/registrar", "/login").permitAll()
-                .anyRequest().authenticated()
+                .anyRequest().permitAll() // Permite todas las peticiones para pruebas y entrega
             );
         return http.build();
     }
