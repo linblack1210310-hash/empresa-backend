@@ -18,6 +18,15 @@ app.get('/productos', (req, res) => {
     });
 });
 
+app.get('/', (req, res) => {
+    db.all("SELECT * FROM productos", [], (err, rows) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        res.json(rows);
+    });
+});
+
 // Ruta para obtener un producto por ID
 app.get('/productos/:id', (req, res) => {
     db.get("SELECT * FROM productos WHERE id = ?", [req.params.id], (err, row) => {
@@ -31,12 +40,14 @@ app.get('/productos/:id', (req, res) => {
     });
 });
 
-// Ruta para actualizar stock de producto (usada por Compras)
-app.put('/productos/:id/stock', (req, res) => {
+// FUNCIÓN AUXILIAR PARA ACTUALIZAR STOCK (Reutilizable para cualquier ruta)
+const actualizarStockLogic = (req, res) => {
     const { cantidad } = req.body;
+    const { id } = req.params;
+
     db.run(
         "UPDATE productos SET stock = stock - ? WHERE id = ? AND stock >= ?",
-        [cantidad, req.params.id, cantidad],
+        [cantidad || 1, id, cantidad || 1],
         function(err) {
             if (err) {
                 return res.status(500).json({ error: err.message });
@@ -47,7 +58,11 @@ app.put('/productos/:id/stock', (req, res) => {
             res.json({ mensaje: "Stock actualizado correctamente" });
         }
     );
-});
+};
+
+// Aceptamos AMBAS rutas para evitar cualquier error 404 de comunicación
+app.put('/productos/:id/stock', actualizarStockLogic);
+app.put('/productos/:id/reducir', actualizarStockLogic);
 
 app.listen(PORT, () => {
     console.log(`Microservicio de Productos corriendo en http://localhost:${PORT}`);

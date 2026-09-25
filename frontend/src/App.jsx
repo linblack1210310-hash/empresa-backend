@@ -13,6 +13,9 @@ function App() {
   const [mostrarHistorial, setMostrarHistorial] = useState(false);
   const [mostrarRegistro, setMostrarRegistro] = useState(false);
 
+  // =========================
+  // INICIAR SESIÓN
+  // =========================
   const iniciarSesion = async (e) => {
     e.preventDefault();
 
@@ -31,7 +34,16 @@ function App() {
         }
       );
 
-      const datos = await respuesta.json();
+      const texto = await respuesta.text();
+      let datos;
+
+      try {
+        datos = JSON.parse(texto);
+      } catch {
+        datos = {
+          error: texto,
+        };
+      }
 
       if (!respuesta.ok) {
         setMensaje(datos.error || 'Error al iniciar sesión');
@@ -39,6 +51,7 @@ function App() {
       }
 
       localStorage.setItem('token', datos.token);
+      localStorage.setItem('refreshToken', datos.refreshToken);
 
       setMensaje('¡Inicio de sesión exitoso!');
       setLogueado(true);
@@ -50,6 +63,9 @@ function App() {
     }
   };
 
+  // =========================
+  // REGISTRAR USUARIO
+  // =========================
   const registrarUsuario = async (e) => {
     e.preventDefault();
 
@@ -69,19 +85,23 @@ function App() {
         }
       );
 
-      const datos = await respuesta.json();
+      const texto = await respuesta.text();
+      let datos;
+
+      try {
+        datos = JSON.parse(texto);
+      } catch {
+        datos = {
+          error: texto,
+        };
+      }
 
       if (!respuesta.ok) {
-        setMensaje(
-          datos.error || 'No se pudo registrar el usuario'
-        );
+        setMensaje(datos.error || 'No se pudo registrar el usuario');
         return;
       }
 
-      setMensaje(
-        'Usuario registrado correctamente. Ahora puedes iniciar sesión.'
-      );
-
+      setMensaje('Usuario registrado correctamente. Ahora puedes iniciar sesión.');
       setMostrarRegistro(false);
       setUsername('');
       setPassword('');
@@ -91,6 +111,49 @@ function App() {
     }
   };
 
+  // =========================
+  // RENOVAR TOKEN
+  // =========================
+  const renovarToken = async () => {
+    const refreshToken = localStorage.getItem('refreshToken');
+
+    if (!refreshToken) {
+      return null;
+    }
+
+    try {
+      const respuesta = await fetch(
+        'http://localhost:3000/api/auth/refresh',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'text/plain',
+          },
+          body: refreshToken,
+        }
+      );
+
+      if (!respuesta.ok) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
+        setLogueado(false);
+        return null;
+      }
+
+      const datos = await respuesta.json();
+
+      localStorage.setItem('token', datos.token);
+
+      return datos.token;
+    } catch (error) {
+      console.error('Error renovando token:', error);
+      return null;
+    }
+  };
+
+  // =========================
+  // CARGAR PRODUCTOS
+  // =========================
   const cargarProductos = async () => {
     try {
       const respuesta = await fetch(
@@ -98,7 +161,6 @@ function App() {
       );
 
       const datos = await respuesta.json();
-
       setProductos(datos);
     } catch (error) {
       console.error(error);
@@ -106,11 +168,14 @@ function App() {
     }
   };
 
+  // =========================
+  // COMPRAR PRODUCTO
+  // =========================
   const comprarProducto = async (productoId) => {
-    const token = localStorage.getItem('token');
+    let token = localStorage.getItem('token');
 
     try {
-      const respuesta = await fetch(
+      let respuesta = await fetch(
         'http://localhost:3000/api/compras/comprar',
         {
           method: 'POST',
@@ -125,17 +190,51 @@ function App() {
         }
       );
 
-      const datos = await respuesta.json();
+      if (respuesta.status === 401) {
+        console.log('Token vencido. Renovando...');
+
+        token = await renovarToken();
+
+        if (!token) {
+          setMensaje('Tu sesión ha expirado. Inicia sesión nuevamente.');
+          return;
+        }
+
+        console.log('Token renovado. Reintentando compra...');
+
+        respuesta = await fetch(
+          'http://localhost:3000/api/compras/comprar',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              producto_id: productoId,
+              cantidad: 1,
+            }),
+          }
+        );
+      }
+
+      const texto = await respuesta.text();
+      let datos;
+
+      try {
+        datos = JSON.parse(texto);
+      } catch {
+        datos = {
+          error: texto,
+        };
+      }
 
       if (!respuesta.ok) {
-        setMensaje(
-          datos.error || 'No se pudo realizar la compra'
-        );
+        setMensaje(datos.error || 'No se pudo realizar la compra');
         return;
       }
 
       setMensaje('¡Compra realizada con éxito!');
-
       cargarProductos();
     } catch (error) {
       console.error(error);
@@ -143,6 +242,9 @@ function App() {
     }
   };
 
+  // =========================
+  // CARGAR HISTORIAL
+  // =========================
   const cargarHistorial = async () => {
     const token = localStorage.getItem('token');
 
@@ -156,12 +258,19 @@ function App() {
         }
       );
 
-      const datos = await respuesta.json();
+      const texto = await respuesta.text();
+      let datos;
+
+      try {
+        datos = JSON.parse(texto);
+      } catch {
+        datos = {
+          error: texto,
+        };
+      }
 
       if (!respuesta.ok) {
-        setMensaje(
-          datos.error || 'No se pudo cargar el historial'
-        );
+        setMensaje(datos.error || 'No se pudo cargar el historial');
         return;
       }
 
@@ -173,8 +282,12 @@ function App() {
     }
   };
 
+  // =========================
+  // CERRAR SESIÓN
+  // =========================
   const cerrarSesion = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
 
     setLogueado(false);
     setProductos([]);
@@ -185,38 +298,34 @@ function App() {
     setPassword('');
   };
 
+  // =========================
+  // INTERFAZ
+  // =========================
   return (
     <div className="app">
       {!logueado ? (
         <div className="auth-container">
           <div className="auth-card">
             <div className="logo">🛒</div>
-
             <h1>Mi E-Commerce</h1>
 
             {!mostrarRegistro ? (
               <>
-                <p className="subtitle">
-                  Inicia sesión para continuar
-                </p>
+                <p className="subtitle">Inicia sesión para continuar</p>
 
                 <form onSubmit={iniciarSesion}>
                   <input
                     type="text"
                     placeholder="Usuario"
                     value={username}
-                    onChange={(e) =>
-                      setUsername(e.target.value)
-                    }
+                    onChange={(e) => setUsername(e.target.value)}
                   />
 
                   <input
                     type="password"
                     placeholder="Contraseña"
                     value={password}
-                    onChange={(e) =>
-                      setPassword(e.target.value)
-                    }
+                    onChange={(e) => setPassword(e.target.value)}
                   />
 
                   <button className="btn-primary" type="submit">
@@ -225,10 +334,7 @@ function App() {
                 </form>
 
                 <p className="mensaje">{mensaje}</p>
-
-                <p className="switch-text">
-                  ¿No tienes una cuenta?
-                </p>
+                <p className="switch-text">¿No tienes una cuenta?</p>
 
                 <button
                   className="btn-secondary"
@@ -249,18 +355,14 @@ function App() {
                     type="text"
                     placeholder="Nuevo usuario"
                     value={username}
-                    onChange={(e) =>
-                      setUsername(e.target.value)
-                    }
+                    onChange={(e) => setUsername(e.target.value)}
                   />
 
                   <input
                     type="password"
                     placeholder="Nueva contraseña"
                     value={password}
-                    onChange={(e) =>
-                      setPassword(e.target.value)
-                    }
+                    onChange={(e) => setPassword(e.target.value)}
                   />
 
                   <button className="btn-primary" type="submit">
@@ -291,10 +393,7 @@ function App() {
               <span>Bienvenido, {username}</span>
             </div>
 
-            <button
-              className="btn-logout"
-              onClick={cerrarSesion}
-            >
+            <button className="btn-logout" onClick={cerrarSesion}>
               Cerrar sesión
             </button>
           </header>
@@ -303,10 +402,7 @@ function App() {
             <div className="title-section">
               <h2>Productos</h2>
 
-              <button
-                className="btn-history"
-                onClick={cargarHistorial}
-              >
+              <button className="btn-history" onClick={cargarHistorial}>
                 📋 Ver historial
               </button>
             </div>
@@ -315,30 +411,18 @@ function App() {
 
             <div className="products-grid">
               {productos.map((producto) => (
-                <div
-                  className="product-card"
-                  key={producto.id}
-                >
+                <div className="product-card" key={producto.id}>
                   <div className="product-icon">📦</div>
-
                   <h3>{producto.nombre}</h3>
-
                   <p className="price">${producto.precio}</p>
-
-                  <p className="stock">
-                    Stock disponible: {producto.stock}
-                  </p>
+                  <p className="stock">Stock disponible: {producto.stock}</p>
 
                   <button
                     className="btn-buy"
-                    onClick={() =>
-                      comprarProducto(producto.id)
-                    }
+                    onClick={() => comprarProducto(producto.id)}
                     disabled={producto.stock <= 0}
                   >
-                    {producto.stock > 0
-                      ? '🛒 Comprar'
-                      : 'Agotado'}
+                    {producto.stock > 0 ? '🛒 Comprar' : 'Agotado'}
                   </button>
                 </div>
               ))}
@@ -353,28 +437,14 @@ function App() {
                 ) : (
                   <div className="history-list">
                     {compras.map((compra) => (
-                      <div
-                        className="history-item"
-                        key={compra.id}
-                      >
+                      <div className="history-item" key={compra.id}>
                         <div>
-                          <strong>
-                            Compra #{compra.id}
-                          </strong>
-
-                          <p>
-                            Producto #{compra.producto_id}
-                          </p>
+                          <strong>Compra #{compra.id}</strong>
+                          <p>Producto #{compra.producto_id}</p>
                         </div>
-
                         <div>
-                          <p>
-                            Cantidad: {compra.cantidad}
-                          </p>
-
-                          <p>
-                            Fecha: {compra.fecha}
-                          </p>
+                          <p>Cantidad: {compra.cantidad}</p>
+                          <p>Fecha: {compra.fecha}</p>
                         </div>
                       </div>
                     ))}

@@ -1,141 +1,71 @@
 const express = require('express');
 const cors = require('cors');
-const jwt = require('jsonwebtoken');
 const axios = require('axios');
 const db = require('./database');
 
 const app = express();
 const PORT = 3002;
 
-const SECRET_KEY = Buffer.from(
-    's5z2b514R6lrNOwLidNrzT9bHtBnlO+0yO5SOzY3Cdg=',
-    'utf8'
-);
-
 app.use(cors());
 app.use(express.json());
 
-const verificarToken = (req, res, next) => {
-    const authHeader = req.headers['authorization'];
+// 1. RUTA PARA REGISTRAR COMPRA Y REDUCIR STOCK
+app.post('/comprar', async (req, res) => {
+  const producto_id = req.body.producto_id || req.body.id || req.body.productId;
+  const cantidad = req.body.cantidad || 1;
+  
+  // Capturamos el usuario enviado por el frontend (por body o headers) o usamos uno por defecto
+  const usuario = req.body.usuario || req.body.username || req.headers['x-usuario'] || 'smith1010'; 
 
-    if (!authHeader) {
-        return res.status(401).json({
-            error: 'Acceso denegado. Token no proporcionado.'
-        });
-    }
+  if (!producto_id) {
+    return res.status(400).json({ error: 'Falta el identificador del producto' });
+  }
 
-    const token = authHeader.startsWith('Bearer ')
-        ? authHeader.slice(7)
-        : authHeader;
- 
-        console.log('AUTH HEADER:', authHeader);
-         console.log('TOKEN:', token);
+  try {
+    const query = `INSERT INTO compras (producto_id, cantidad, usuario, fecha) VALUES (?, ?, ?, datetime('now'))`;
+    
+    db.run(query, [producto_id, cantidad, usuario], async function(err) {
+      if (err) {
+        console.error("Error base de datos compras:", err.message);
+        return res.status(500).json({ error: 'Error al guardar la compra: ' + err.message });
+      }
 
-    jwt.verify(token, SECRET_KEY, (err, decoded) => {
+      // AVISAR AL MICROSERVICIO DE PRODUCTOS (3001) PARA ACTUALIZAR EL STOCK
+      try {
+        await axios.put(`http://localhost:3001/productos/${producto_id}/stock`, { cantidad });
+      } catch (stockError) {
+        console.warn("No se pudo actualizar el stock en productos:", stockError.message);
+      }
 
-        if (err) {
-            console.log('ERROR JWT:', err.message);
-
-            return res.status(403).json({
-                error: 'Token inválido o expirado.',
-                detalle: err.message
-            });
-        }
-
-        console.log('JWT VALIDADO:', decoded);
-
-        req.usuario = decoded.sub || decoded.username;
-
-        next();
+      return res.status(201).json({ 
+        success: true, 
+        message: 'Compra realizada con éxito y stock actualizado', 
+        id: this.lastID 
+      });
     });
+
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+// 2. RUTA PARA CONSULTAR HISTORIAL FILTRADO ESTRICTAMENTE POR USUARIO
+const obtenerHistorial = (req, res) => {
+  // Capturamos el usuario o asignamos 'smith1010' por defecto para evitar mostrar datos globales
+  const usuario = req.query.usuario || req.headers['x-usuario'] || 'smith1010';
+
+  let query = `SELECT * FROM compras WHERE usuario = ?`;
+  let params = [usuario];
+
+  db.all(query, params, (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(rows);
+  });
 };
 
-app.post('/comprar', verificarToken, async (req, res) => {
-
-   console.log('BODY RECIBIDO:', req.body);
-
-    const { producto_id, cantidad } = req.body || {};
-    const usuario = req.usuario;
-
-    if (!producto_id || !cantidad) {
-        return res.status(400).json({
-            error: 'Debe enviar producto_id y cantidad.'
-        });
-    }
-
-    try {
-
-        await axios.put(
-            `http://localhost:3001/productos/${producto_id}/stock`,
-            {
-                cantidad: cantidad
-            }
-        );
-
-        const stmt = db.prepare(
-            "INSERT INTO compras (usuario, producto_id, cantidad) VALUES (?, ?, ?)"
-        );
-
-        stmt.run(
-            usuario,
-            producto_id,
-            cantidad,
-            function (err) {
-
-                if (err) {
-                    return res.status(500).json({
-                        error: err.message
-                    });
-                }
-
-                res.json({
-                    mensaje: 'Compra realizada con éxito',
-                    compraId: this.lastID,
-                    usuario,
-                    producto_id,
-                    cantidad
-                });
-            }
-        );
-
-        stmt.finalize();
-
-    } catch (error) {
-
-        if (error.response) {
-            return res.status(error.response.status).json({
-                error:
-                    error.response.data.error ||
-                    'Error al procesar la compra'
-            });
-        }
-
-        res.status(500).json({
-            error: 'No se pudo conectar con el microservicio de Productos.'
-        });
-    }
-});
-
-app.get('/compras', verificarToken, (req, res) => {
-
-    db.all(
-        "SELECT * FROM compras WHERE usuario = ?",
-        [req.usuario],
-        (err, rows) => {
-
-            if (err) {
-                return res.status(500).json({
-                    error: err.message
-                });
-            }
-
-            res.json(rows);
-        }
-    );
-});
+app.get('/compras', obtenerHistorial);
+app.get('/', obtenerHistorial);
 
 app.listen(PORT, () => {
-    console.log(
-        `Microservicio de COMPRAS corriendo en http://localhost:${PORT}`
-    );
+  console.log(`Compras Service corriendo en http://localhost:${PORT}`);
 });

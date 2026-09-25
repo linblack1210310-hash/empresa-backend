@@ -10,7 +10,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
     }
 });
 
-// Crear tabla de productos e insertar datos iniciales
+// Crear tabla e insertar datos iniciales de forma segura
 db.serialize(() => {
     db.run(`
         CREATE TABLE IF NOT EXISTS productos (
@@ -19,16 +19,18 @@ db.serialize(() => {
             precio REAL NOT NULL,
             stock INTEGER NOT NULL
         )
-    `);
-
-    db.get("SELECT COUNT(*) AS count FROM productos", (err, row) => {
-        if (row && row.count === 0) {
-            const stmt = db.prepare("INSERT INTO productos (nombre, precio, stock) VALUES (?, ?, ?)");
-            stmt.run("Laptop Gaming", 1200.00, 10);
-            stmt.run("Mouse Inalámbrico", 25.50, 50);
-            stmt.run("Teclado Mecánico", 80.00, 20);
-            stmt.finalize();
-            console.log("Productos de prueba agregados.");
+    `, (err) => {
+        if (!err) {
+            db.get("SELECT COUNT(*) AS count FROM productos", (err, row) => {
+                if (row && row.count === 0) {
+                    const stmt = db.prepare("INSERT INTO productos (nombre, precio, stock) VALUES (?, ?, ?)");
+                    stmt.run("Laptop Gaming", 1200.00, 10);
+                    stmt.run("Mouse Inalámbrico", 25.50, 50);
+                    stmt.run("Teclado Mecánico", 80.00, 20);
+                    stmt.finalize();
+                    console.log("Productos de prueba agregados.");
+                }
+            });
         }
     });
 });

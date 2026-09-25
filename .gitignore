@@ -15,3 +15,7 @@ empresa/target/
 
 # Logs
 *.log
+
+# Archivos generados y bases de datos locales
+target/
+*.db
